@@ -11,14 +11,14 @@ import { ChatState } from "../Context/ChatProvider";
 
 const ScrollableChat = ({ messages }) => {
   const { user } = ChatState();
-
+  console.log('USER LOCAL SESSION ===============>',user)
   return (
     <ScrollableFeed>
       {messages &&
         messages.map((m, i) => (
-          <div style={{ display: "flex" }} key={m._id}>
-            {(isSameSender(messages, m, i, user._id) ||
-              isLastMessage(messages, i, user._id)) && (
+          <div style={{ display: "flex" }} key={m.id}>
+            {(isSameSender(messages, m, i, user.id) ||
+              isLastMessage(messages, i, user.id)) && (
               <Tooltip label={m.sender.name} placement="bottom-start" hasArrow>
                 <Avatar
                   mt="7px"
@@ -26,17 +26,17 @@ const ScrollableChat = ({ messages }) => {
                   size="sm"
                   cursor="pointer"
                   name={m.sender.name}
-                  src={m.sender.pic}
+                  src={m.sender.image}
                 />
               </Tooltip>
             )}
             <span
               style={{
                 backgroundColor: `${
-                  m.sender._id === user._id ? "#BEE3F8" : "#B9F5D0"
+                  m.sender.id === user.id ? "#BEE3F8" : "#B9F5D0"
                 }`,
-                marginLeft: isSameSenderMargin(messages, m, i, user._id),
-                marginTop: isSameUser(messages, m, i, user._id) ? 3 : 10,
+                marginLeft: isSameSenderMargin(messages, m, i, user.id),
+                marginTop: isSameUser(messages, m, i, user.id) ? 3 : 10,
                 borderRadius: "20px",
                 padding: "5px 15px",
                 maxWidth: "75%",

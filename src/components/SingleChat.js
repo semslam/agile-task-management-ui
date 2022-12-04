@@ -5,12 +5,12 @@ import "./styles.css";
 import { IconButton, Spinner, useToast } from "@chakra-ui/react";
 import { getSender, getSenderFull } from "../config/ChatLogics";
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { ArrowBackIcon } from "@chakra-ui/icons";
 import ProfileModal from "./miscellaneous/ProfileModal";
 import ScrollableChat from "./ScrollableChat";
 import Lottie from "react-lottie";
 import animationData from "../animations/typing.json";
+import WebHook from "../services/webhook";
 
 import io from "socket.io-client";
 import UpdateGroupChatModal from "./miscellaneous/UpdateGroupChatModal";
@@ -42,22 +42,14 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
     if (!selectedChat) return;
 
     try {
-      const config = {
-        headers: {
-          Authorization: `Bearer ${user.token}`,
-        },
-      };
-
+     
       setLoading(true);
-
-      const { data } = await axios.get(
-        `/api/message/${selectedChat._id}`,
-        config
-      );
+      let {data} = await new WebHook(user.token).get(`message/${selectedChat.id}`)
+      data = data.data
       setMessages(data);
       setLoading(false);
 
-      socket.emit("join chat", selectedChat._id);
+      socket.emit("join chat", selectedChat.id);
     } catch (error) {
       toast({
         title: "Error Occured!",
@@ -72,23 +64,14 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
 
   const sendMessage = async (event) => {
     if (event.key === "Enter" && newMessage) {
-      socket.emit("stop typing", selectedChat._id);
+      socket.emit("stop typing", selectedChat.id);
       try {
-        const config = {
-          headers: {
-            "Content-type": "application/json",
-            Authorization: `Bearer ${user.token}`,
-          },
-        };
         setNewMessage("");
-        const { data } = await axios.post(
-          "/api/message",
-          {
-            content: newMessage,
-            chatId: selectedChat,
-          },
-          config
-        );
+        let {data} = await new WebHook(user.token).create("message",{
+          content: newMessage,
+          chatId: selectedChat.id
+        })
+        data = data.data
         socket.emit("new message", data);
         setMessages([...messages, data]);
       } catch (error) {
@@ -122,10 +105,10 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
   }, [selectedChat]);
 
   useEffect(() => {
-    socket.on("message recieved", (newMessageRecieved) => {
+    socket.on("message received", (newMessageRecieved) => {
       if (
         !selectedChatCompare || // if chat is not selected or doesn't match current chat
-        selectedChatCompare._id !== newMessageRecieved.chat._id
+        selectedChatCompare.id !== newMessageRecieved.chat.id
       ) {
         if (!notification.includes(newMessageRecieved)) {
           setNotification([newMessageRecieved, ...notification]);
@@ -144,7 +127,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
 
     if (!typing) {
       setTyping(true);
-      socket.emit("typing", selectedChat._id);
+      socket.emit("typing", selectedChat.id);
     }
     let lastTypingTime = new Date().getTime();
     var timerLength = 3000;
@@ -152,7 +135,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
       var timeNow = new Date().getTime();
       var timeDiff = timeNow - lastTypingTime;
       if (timeDiff >= timerLength && typing) {
-        socket.emit("stop typing", selectedChat._id);
+        socket.emit("stop typing", selectedChat.id);
         setTyping(false);
       }
     }, timerLength);

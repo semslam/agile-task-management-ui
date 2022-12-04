@@ -21,7 +21,6 @@ import { BellIcon, ChevronDownIcon } from "@chakra-ui/icons";
 import { Avatar } from "@chakra-ui/avatar";
 import { useHistory } from "react-router-dom";
 import { useState } from "react";
-import axios from "axios";
 import { useToast } from "@chakra-ui/toast";
 import ChatLoading from "../ChatLoading";
 import { Spinner } from "@chakra-ui/spinner";
@@ -31,6 +30,7 @@ import { Effect } from "react-notification-badge";
 import { getSender } from "../../config/ChatLogics";
 import UserListItem from "../userAvatar/UserListItem";
 import { ChatState } from "../../Context/ChatProvider";
+import WebHook from "../../services/webhook";
 
 function SideDrawer() {
   const [search, setSearch] = useState("");
@@ -71,14 +71,9 @@ function SideDrawer() {
     try {
       setLoading(true);
 
-      const config = {
-        headers: {
-          Authorization: `Bearer ${user.token}`,
-        },
-      };
-
-      const { data } = await axios.get(`/api/user?search=${search}`, config);
-
+      let {data} = await new WebHook(user.token).get(`users?search=${search}`)
+      data = data.data;
+      console.log(data);
       setLoading(false);
       setSearchResult(data);
     } catch (error) {
@@ -98,15 +93,12 @@ function SideDrawer() {
 
     try {
       setLoadingChat(true);
-      const config = {
-        headers: {
-          "Content-type": "application/json",
-          Authorization: `Bearer ${user.token}`,
-        },
-      };
-      const { data } = await axios.post(`/api/chat`, { userId }, config);
 
-      if (!chats.find((c) => c._id === data._id)) setChats([data, ...chats]);
+      let {data} = await new WebHook(user.token).create(`chat/create-and-fetch-single-chat`,{userId})
+      data = data.data;
+      console.log(data);
+
+      if (!chats.find((c) => c.id === data.id)) setChats([data, ...chats]);
       setSelectedChat(data);
       setLoadingChat(false);
       onClose();
@@ -157,7 +149,7 @@ function SideDrawer() {
               {!notification.length && "No New Messages"}
               {notification.map((notif) => (
                 <MenuItem
-                  key={notif._id}
+                  key={notif.id}
                   onClick={() => {
                     setSelectedChat(notif.chat);
                     setNotification(notification.filter((n) => n !== notif));
@@ -176,7 +168,7 @@ function SideDrawer() {
                 size="sm"
                 cursor="pointer"
                 name={user.name}
-                src={user.pic}
+                src={user.image}
               />
             </MenuButton>
             <MenuList>
@@ -209,9 +201,9 @@ function SideDrawer() {
             ) : (
               searchResult?.map((user) => (
                 <UserListItem
-                  key={user._id}
+                  key={user.id}
                   user={user}
-                  handleFunction={() => accessChat(user._id)}
+                  handleFunction={() => accessChat(user.id)}
                 />
               ))
             )}

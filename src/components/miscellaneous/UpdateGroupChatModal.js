@@ -16,11 +16,11 @@ import {
   IconButton,
   Spinner,
 } from "@chakra-ui/react";
-import axios from "axios";
 import { useState } from "react";
 import { ChatState } from "../../Context/ChatProvider";
 import UserBadgeItem from "../userAvatar/UserBadgeItem";
 import UserListItem from "../userAvatar/UserListItem";
+import WebHook from "../../services/webhook";
 
 const UpdateGroupChatModal = ({ fetchMessages, fetchAgain, setFetchAgain }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -41,13 +41,10 @@ const UpdateGroupChatModal = ({ fetchMessages, fetchAgain, setFetchAgain }) => {
 
     try {
       setLoading(true);
-      const config = {
-        headers: {
-          Authorization: `Bearer ${user.token}`,
-        },
-      };
-      const { data } = await axios.get(`/api/user?search=${search}`, config);
-      console.log(data);
+      
+      let {data} = await new WebHook(user.token).get(`users?search=${search}`)
+      data = data.data;
+      console.log("SEARCH USER <|=============|>",data);
       setLoading(false);
       setSearchResult(data);
     } catch (error) {
@@ -68,21 +65,15 @@ const UpdateGroupChatModal = ({ fetchMessages, fetchAgain, setFetchAgain }) => {
 
     try {
       setRenameLoading(true);
-      const config = {
-        headers: {
-          Authorization: `Bearer ${user.token}`,
-        },
-      };
-      const { data } = await axios.put(
-        `/api/chat/rename`,
-        {
-          chatId: selectedChat._id,
-          chatName: groupChatName,
-        },
-        config
-      );
-
-      console.log(data._id);
+     
+      let {data} = await new WebHook(user.token).update(`chat/rename-group-chat`,
+      {
+        chatId: selectedChat.id,
+        chatName: groupChatName,
+      })
+      data = data.data;
+      console.log(data);
+      console.log(data.id);
       // setSelectedChat("");
       setSelectedChat(data);
       setFetchAgain(!fetchAgain);
@@ -102,7 +93,7 @@ const UpdateGroupChatModal = ({ fetchMessages, fetchAgain, setFetchAgain }) => {
   };
 
   const handleAddUser = async (user1) => {
-    if (selectedChat.users.find((u) => u._id === user1._id)) {
+    if (selectedChat.users.find((u) => u.id === user1.id)) {
       toast({
         title: "User Already in group!",
         status: "error",
@@ -113,7 +104,7 @@ const UpdateGroupChatModal = ({ fetchMessages, fetchAgain, setFetchAgain }) => {
       return;
     }
 
-    if (selectedChat.groupAdmin._id !== user._id) {
+    if (selectedChat.groupAdmin.id !== user.id) {
       toast({
         title: "Only admins can add someone!",
         status: "error",
@@ -126,20 +117,13 @@ const UpdateGroupChatModal = ({ fetchMessages, fetchAgain, setFetchAgain }) => {
 
     try {
       setLoading(true);
-      const config = {
-        headers: {
-          Authorization: `Bearer ${user.token}`,
-        },
-      };
-      const { data } = await axios.put(
-        `/api/chat/groupadd`,
-        {
-          chatId: selectedChat._id,
-          userId: user1._id,
-        },
-        config
-      );
-
+    
+      let {data} = await new WebHook(user.token).update(`chat/add-user-to-group-chat`,
+      {
+        chatId: selectedChat.id,
+        userId: user1.id,
+      })
+      data = data.data;
       setSelectedChat(data);
       setFetchAgain(!fetchAgain);
       setLoading(false);
@@ -158,7 +142,7 @@ const UpdateGroupChatModal = ({ fetchMessages, fetchAgain, setFetchAgain }) => {
   };
 
   const handleRemove = async (user1) => {
-    if (selectedChat.groupAdmin._id !== user._id && user1._id !== user._id) {
+    if (selectedChat.groupAdmin.id !== user.id && user1.id !== user.id) {
       toast({
         title: "Only admins can remove someone!",
         status: "error",
@@ -171,21 +155,14 @@ const UpdateGroupChatModal = ({ fetchMessages, fetchAgain, setFetchAgain }) => {
 
     try {
       setLoading(true);
-      const config = {
-        headers: {
-          Authorization: `Bearer ${user.token}`,
-        },
-      };
-      const { data } = await axios.put(
-        `/api/chat/groupremove`,
-        {
-          chatId: selectedChat._id,
-          userId: user1._id,
-        },
-        config
-      );
-
-      user1._id === user._id ? setSelectedChat() : setSelectedChat(data);
+    
+      let {data} = await new WebHook(user.token).update(`chat/remove-user-from-group-chat`,
+      {
+        chatId: selectedChat.id,
+        userId: user1.id,
+      })
+      data = data.data;
+      user1.id === user.id ? setSelectedChat() : setSelectedChat(data);
       setFetchAgain(!fetchAgain);
       fetchMessages();
       setLoading(false);
@@ -224,7 +201,7 @@ const UpdateGroupChatModal = ({ fetchMessages, fetchAgain, setFetchAgain }) => {
             <Box w="100%" d="flex" flexWrap="wrap" pb={3}>
               {selectedChat.users.map((u) => (
                 <UserBadgeItem
-                  key={u._id}
+                  key={u.id}
                   user={u}
                   admin={selectedChat.groupAdmin}
                   handleFunction={() => handleRemove(u)}
@@ -260,8 +237,9 @@ const UpdateGroupChatModal = ({ fetchMessages, fetchAgain, setFetchAgain }) => {
               <Spinner size="lg" />
             ) : (
               searchResult?.map((user) => (
+
                 <UserListItem
-                  key={user._id}
+                  key={user.id}
                   user={user}
                   handleFunction={() => handleAddUser(user)}
                 />

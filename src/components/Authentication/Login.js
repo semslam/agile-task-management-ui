@@ -3,15 +3,16 @@ import { FormControl, FormLabel } from "@chakra-ui/form-control";
 import { Input, InputGroup, InputRightElement } from "@chakra-ui/input";
 import { VStack } from "@chakra-ui/layout";
 import { useState } from "react";
-import axios from "axios";
+// import axios from "axios";
 import { useToast } from "@chakra-ui/react";
 import { useHistory } from "react-router-dom";
+import WebHook from "../../services/webhook";
 
 const Login = () => {
   const [show, setShow] = useState(false);
   const handleClick = () => setShow(!show);
   const toast = useToast();
-  const [email, setEmail] = useState();
+  const [username, setUsername] = useState();
   const [password, setPassword] = useState();
   const [loading, setLoading] = useState(false);
 
@@ -19,9 +20,9 @@ const Login = () => {
 
   const submitHandler = async () => {
     setLoading(true);
-    if (!email || !password) {
+    if (!username || !password) {
       toast({
-        title: "Please Fill all the Feilds",
+        title: "Please Fill all the Felids",
         status: "warning",
         duration: 5000,
         isClosable: true,
@@ -32,7 +33,7 @@ const Login = () => {
     }
 
     let emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
-    if(!email.match(emailRegex)){
+    if(!username.match(emailRegex)){
       toast({
         title: "Invalid Email Address",
         status: "warning",
@@ -46,19 +47,26 @@ const Login = () => {
 
     // console.log(email, password);
     try {
-      const config = {
-        headers: {
-          "Content-type": "application/json",
-        },
-      };
+      // const config = {
+      //   headers: {
+      //     "Content-type": "application/json",
+      //   },
+      // };
 
-      const { data } = await axios.post(
-        "/api/user/login",
-        { email, password },
-        config
-      );
+      // const { data } = await axios.post(
+      //   "/api/user/login",
+      //   { email, password },
+      //   config
+      // );
 
-      // console.log(JSON.stringify(data));
+      const {data} = await new WebHook().create("users/login",{
+        username,
+        password
+      })
+ const userInfo = data.data.user
+      console.log(userInfo);
+
+      console.log(JSON.stringify(userInfo));
       toast({
         title: "Login Successful",
         status: "success",
@@ -66,9 +74,9 @@ const Login = () => {
         isClosable: true,
         position: "top",
       });
-      localStorage.setItem("userInfo", JSON.stringify(data));
+     localStorage.setItem("userInfo", JSON.stringify(userInfo));
       setLoading(false);
-      history.push("/chats");
+     history.push("/chats");
     } catch (error) {
       toast({
         title: "Error Occured!",
@@ -87,10 +95,10 @@ const Login = () => {
       <FormControl id="email" isRequired>
         <FormLabel>Email Address</FormLabel>
         <Input
-          value={email}
+          value={username}
           type="email"
           placeholder="Enter Your Email Address"
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => setUsername(e.target.value)}
         />
       </FormControl>
       <FormControl id="password" isRequired>
@@ -117,17 +125,6 @@ const Login = () => {
         isLoading={loading}
       >
         Login
-      </Button>
-      <Button
-        variant="solid"
-        colorScheme="red"
-        width="100%"
-        onClick={() => {
-          setEmail("guest@example.com");
-          setPassword("123456");
-        }}
-      >
-        Get Guest User Credentials
       </Button>
     </VStack>
   );
